@@ -56,8 +56,8 @@ app.get('/api/health', (req, res) => {
   });
 });
 
-// Routes will be added here later
-// app.use('/api/auth', require('./routes/authRoutes'));
+// Import routes
+app.use('/api/auth', require('./routes/authRoutes'));
 // app.use('/api/bookings', require('./routes/bookingRoutes'));
 // app.use('/api/admin', require('./routes/adminRoutes'));
 
@@ -86,12 +86,12 @@ app.listen(PORT, () => {
   console.log(`
 ╔════════════════════════════════════════════════════════════╗
 ║                                                            ║
-║   🚗 IBM Leicester Parking Portal API                     ║
+║   IBM Leicester Parking Portal API                         ║
 ║                                                            ║
-║   Server: http://localhost:${PORT}                        ║
-║   Environment: ${process.env.NODE_ENV || 'development'}                      ║
-║   Student: Rizwan Lunat (P2605119)                        ║
-║   Module: CTEC3360                                        ║
+║   Server: http://localhost:${PORT}                         ║
+║   Environment: ${process.env.NODE_ENV || 'development'}    ║
+║   Student: Rizwan Lunat (P2605119)                         ║
+║   Module: CTEC3360                                         ║
 ║                                                            ║
 ╚════════════════════════════════════════════════════════════╝
   `);
