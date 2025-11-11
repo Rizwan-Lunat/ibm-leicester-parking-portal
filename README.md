@@ -46,7 +46,7 @@ This system addresses parking management inefficiencies at IBM Leicester by prov
 
 ## 📁 Project Structure
 ```
-ibm-parking-portal/
+ibm-leicester-parking-portal/
 ├── client/          (React frontend)
 ├── server/          (Node.js backend)
 └── docs/            (Documentation)
