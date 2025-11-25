@@ -59,7 +59,7 @@ app.get('/api/health', (req, res) => {
 // Import routes
 app.use('/api/auth', require('./routes/authRoutes'));
 app.use('/api/bookings', require('./routes/bookingRoutes'));
-// app.use('/api/admin', require('./routes/adminRoutes'));
+app.use('/api/admin', require('./routes/adminRoutes'));
 
 // 404 handler - catches routes that don't exist
 app.use((req, res) => {
