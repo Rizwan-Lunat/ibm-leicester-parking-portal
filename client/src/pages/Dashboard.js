@@ -29,12 +29,18 @@ const [vehicleReg, setVehicleReg] = useState('');
 const [availability, setAvailability] = useState(null);
 const [loading, setLoading] = useState(false);
 
-  // Get tomorrow's date (24-hour booking window)
-  const getTomorrowDate = () => {
-    const tomorrow = new Date();
-    tomorrow.setDate(tomorrow.getDate() + 1);
-    return tomorrow.toISOString().split('T')[0];
-  };
+  // Get today's date
+const getTodayDate = () => {
+  const today = new Date();
+  return today.toISOString().split('T')[0];
+};
+
+// Get tomorrow's date (24-hour booking window)
+const getTomorrowDate = () => {
+  const tomorrow = new Date();
+  tomorrow.setDate(tomorrow.getDate() + 1);
+  return tomorrow.toISOString().split('T')[0];
+};
 
   // Load user's bookings
   useEffect(() => {
@@ -209,13 +215,16 @@ const [loading, setLoading] = useState(false);
 
           <form onSubmit={handleBooking} className="booking-form">
             <div className="form-group">
-              <label htmlFor="date">Select Date (Up to 24 hours ahead)</label>
+              <label htmlFor="date">
+  Select Date (Up to 24 hours ahead)
+  <span className="help-text">📅 You can only book parking up to 24 hours in advance to prevent space hoarding</span>
+</label>
               <input
                 type="date"
                 id="date"
                 value={selectedDate}
                 onChange={handleDateChange}
-                min={getTomorrowDate()}
+                min={getTodayDate()}
                 max={getTomorrowDate()}
                 required
                 disabled={loading}
@@ -235,7 +244,10 @@ const [loading, setLoading] = useState(false);
             {availability && availability.availableCount > 0 && (
               <>
                 <div className="form-group">
-                  <label htmlFor="space">Select Space</label>
+                  <label htmlFor="space">
+  Select Space
+  <span className="help-text">🅿️ Choose any available space</span>
+</label>
                   <select
                     id="space"
                     value={selectedSpace}
@@ -253,7 +265,10 @@ const [loading, setLoading] = useState(false);
                 </div>
 
                 <div className="form-group">
-                  <label htmlFor="vehicle">Vehicle Registration (Optional)</label>
+                  <label htmlFor="vehicle">
+  Vehicle Registration (Optional)
+  <span className="help-text">🚗 Helps reception identify your vehicle if needed</span>
+</label>
                   <input
                     type="text"
                     id="vehicle"
@@ -275,8 +290,11 @@ const [loading, setLoading] = useState(false);
             )}
 
             {availability && availability.availableCount === 0 && (
-              <p className="no-spaces">No spaces available for this date</p>
-            )}
+  <div className="no-spaces-state">
+    <p>😞 <strong>Fully Booked</strong></p>
+    <p>All {availability.totalSpaces} spaces are reserved for this date. Try selecting a different date or check back later for cancellations.</p>
+  </div>
+)}
           </form>
         </div>
 
@@ -289,7 +307,11 @@ const [loading, setLoading] = useState(false);
               <p>Loading your bookings...</p>
             </div>
           ) : bookings.length === 0 ? (
-            <p className="no-bookings">You have no active bookings</p>
+  <div className="empty-state">
+    <p className="empty-icon">🅿️</p>
+    <h3>No bookings yet</h3>
+    <p>You haven't made any parking reservations. Select a date to get started!</p>
+  </div>
           ) : (
             <div className="bookings-list">
               {bookings.map(booking => (

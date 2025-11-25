@@ -257,3 +257,65 @@ button:disabled {
   cursor: not-allowed;
   opacity: 0.6;
 }
+
+/* Empty States */
+.empty-state {
+  text-align: center;
+  padding: 60px 20px;
+  color: #666;
+}
+
+.empty-icon {
+  font-size: 64px;
+  margin-bottom: 20px;
+}
+
+.empty-state h3 {
+  color: #333;
+  margin-bottom: 10px;
+  font-size: 24px;
+}
+
+.empty-state p {
+  color: #666;
+  font-size: 16px;
+}
+
+/* No Spaces Available */
+.no-spaces-state {
+  background-color: #fff3cd;
+  border: 1px solid #ffc107;
+  border-radius: 8px;
+  padding: 20px;
+  margin-top: 20px;
+  text-align: center;
+}
+
+.no-spaces-state p:first-child {
+  font-size: 18px;
+  margin-bottom: 10px;
+  color: #856404;
+}
+
+.no-spaces-state p:last-child {
+  color: #856404;
+  margin-bottom: 0;
+  font-size: 14px;
+}
+
+/* Help Text */
+.help-text {
+  display: block;
+  font-size: 13px;
+  color: #666;
+  font-weight: normal;
+  margin-top: 5px;
+  line-height: 1.4;
+}
+
+label {
+  display: block;
+  margin-bottom: 8px;
+  font-weight: 500;
+  color: #333;
+}
