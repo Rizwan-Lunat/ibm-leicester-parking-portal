@@ -8,14 +8,26 @@ function Dashboard() {
   const { user, logout } = useAuth();
   const navigate = useNavigate();
   
-  const [bookings, setBookings] = useState([]);
-  const [availability, setAvailability] = useState(null);
-  const [selectedDate, setSelectedDate] = useState('');
-  const [selectedSpace, setSelectedSpace] = useState('');
-  const [vehicleReg, setVehicleReg] = useState('');
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState('');
-  const [success, setSuccess] = useState('');
+ const [bookings, setBookings] = useState([]);
+const [availableSpaces, setAvailableSpaces] = useState([]);
+const [totalSpaces, setTotalSpaces] = useState(0);
+const [bookingDate, setBookingDate] = useState('');
+const [spaceNumber, setSpaceNumber] = useState('');
+const [vehicleRegistration, setVehicleRegistration] = useState('');
+const [error, setError] = useState('');
+const [success, setSuccess] = useState('');
+
+// Loading states
+const [loadingBookings, setLoadingBookings] = useState(true);
+const [loadingAvailability, setLoadingAvailability] = useState(false);
+const [creatingBooking, setCreatingBooking] = useState(false);
+
+// Additional state for form (ADD THESE 5 LINES)
+const [selectedDate, setSelectedDate] = useState('');
+const [selectedSpace, setSelectedSpace] = useState('');
+const [vehicleReg, setVehicleReg] = useState('');
+const [availability, setAvailability] = useState(null);
+const [loading, setLoading] = useState(false);
 
   // Get tomorrow's date (24-hour booking window)
   const getTomorrowDate = () => {
@@ -30,22 +42,43 @@ function Dashboard() {
   }, []);
 
   const loadBookings = async () => {
-    try {
-      const response = await bookingAPI.getUserBookings();
-      setBookings(response.data.bookings);
-    } catch (err) {
-      console.error('Failed to load bookings:', err);
-    }
-  };
+  setLoadingBookings(true);
+  try {
+    const response = await bookingAPI.getUserBookings();
+    setBookings(response.data.bookings || []);
+  } catch (error) {
+    console.error('Error loading bookings:', error);
+    setError('Failed to load bookings');
+  } finally {
+    setLoadingBookings(false);
+  }
+};
 
   const checkAvailability = async (date) => {
-    try {
-      const response = await bookingAPI.checkAvailability(date);
-      setAvailability(response.data);
-    } catch (err) {
-      setError('Failed to check availability');
-    }
-  };
+  setLoadingAvailability(true);
+  try {
+    const response = await bookingAPI.checkAvailability(date);
+    
+    // Set both the old format AND the new availability object
+    setAvailableSpaces(response.data.availableSpaces || []);
+    setTotalSpaces(response.data.totalSpaces || 0);
+    
+    // Set availability object for the form
+    setAvailability({
+      availableSpaces: response.data.availableSpaces || [],
+      availableCount: response.data.availableSpaces?.length || 0,
+      totalSpaces: response.data.totalSpaces || 0
+    });
+  } catch (error) {
+    console.error('Error checking availability:', error);
+    setError('Failed to check availability');
+    setAvailableSpaces([]);
+    setTotalSpaces(0);
+    setAvailability(null);
+  } finally {
+    setLoadingAvailability(false);
+  }
+};
 
   const handleDateChange = (e) => {
     const date = e.target.value;
@@ -59,44 +92,88 @@ function Dashboard() {
   };
 
   const handleBooking = async (e) => {
-    e.preventDefault();
-    setError('');
-    setSuccess('');
-    setLoading(true);
-
-    try {
-      await bookingAPI.create({
-        booking_date: selectedDate,
-        space_number: parseInt(selectedSpace),
-        vehicle_registration: vehicleReg || null
-      });
-      
-      setSuccess('Booking created successfully!');
-      setSelectedDate('');
-      setSelectedSpace('');
-      setVehicleReg('');
-      setAvailability(null);
-      loadBookings();
-    } catch (err) {
-      setError(err.response?.data?.message || 'Booking failed');
-    }
+  e.preventDefault();
+  setError('');
+  setSuccess('');
+  setCreatingBooking(true);
+  
+  try {
+    await bookingAPI.create({
+      booking_date: selectedDate,
+      space_number: parseInt(selectedSpace),
+      vehicle_registration: vehicleReg || null
+    });
     
-    setLoading(false);
-  };
-
-  const handleCancelBooking = async (bookingId) => {
-    if (!window.confirm('Are you sure you want to cancel this booking?')) {
-      return;
+    setSuccess('✅ Booking created successfully!');
+    
+    // Auto-dismiss success message after 5 seconds
+    setTimeout(() => {
+      setSuccess('');
+    }, 5000);
+    
+    setBookingDate('');
+    setSpaceNumber('');
+    setVehicleRegistration('');
+    setAvailableSpaces([]);
+    setTotalSpaces(0);
+    loadBookings();
+  } catch (err) {
+    // Better error messages
+    const errorMessage = err.response?.data?.message;
+    
+    if (errorMessage?.includes('already have a booking')) {
+      setError('⚠️ You already have a booking for this date. Please cancel it first or choose a different date.');
+    } else if (errorMessage?.includes('No spaces available')) {
+      setError('😞 Sorry, all spaces are booked for this date. Please try another date.');
+    } else if (errorMessage?.includes('24-hour window')) {
+      setError('⏰ Bookings can only be made for tomorrow (within the 24-hour window).');
+    } else if (errorMessage?.includes('past date')) {
+      setError('📅 Cannot book spaces for past dates. Please select a future date.');
+    } else {
+      setError(errorMessage || '❌ Failed to create booking. Please try again.');
     }
+  } finally {
+    setCreatingBooking(false);
+  }
+};
 
-    try {
-      await bookingAPI.cancel(bookingId);
-      setSuccess('Booking cancelled successfully');
-      loadBookings();
-    } catch (err) {
-      setError(err.response?.data?.message || 'Cancellation failed');
+  const handleCancelBooking = async (bookingId, bookingDate) => {
+  // Format date nicely for confirmation
+  const formattedDate = new Date(bookingDate).toLocaleDateString('en-GB', {
+    weekday: 'long',
+    month: 'long',
+    day: 'numeric',
+    year: 'numeric'
+  });
+  
+  const confirmMessage = `Are you sure you want to cancel your parking booking for ${formattedDate}?\n\nThis action cannot be undone.`;
+  
+  if (!window.confirm(confirmMessage)) {
+    return;
+  }
+  
+  try {
+    await bookingAPI.cancel(bookingId);
+    setSuccess('✅ Booking cancelled successfully!');
+    
+    // Auto-dismiss after 5 seconds
+    setTimeout(() => {
+      setSuccess('');
+    }, 5000);
+    
+    loadBookings();
+  } catch (err) {
+    const errorMessage = err.response?.data?.message;
+    
+    if (err.response?.status === 404) {
+      setError('❌ Booking not found. It may have already been cancelled.');
+    } else if (err.response?.status === 403) {
+      setError('🔒 You don\'t have permission to cancel this booking.');
+    } else {
+      setError(errorMessage || '❌ Failed to cancel booking. Please try again.');
     }
-  };
+  }
+};
 
   const handleLogout = () => {
     logout();
@@ -145,7 +222,11 @@ function Dashboard() {
               />
             </div>
 
-            {availability && (
+            {loadingAvailability ? (
+              <p style={{ fontStyle: 'italic', color: '#666', marginTop: '10px' }}>
+                Checking availability...
+              </p>
+            ) : availability && (
               <div className="availability-info">
                 <p><strong>Available Spaces:</strong> {availability.availableCount} / {availability.totalSpaces}</p>
               </div>
@@ -186,9 +267,9 @@ function Dashboard() {
                 <button 
                   type="submit" 
                   className="btn-primary"
-                  disabled={loading || !selectedSpace}
+                  disabled={creatingBooking || !selectedSpace}
                 >
-                  {loading ? 'Booking...' : 'Book Space'}
+                  {creatingBooking ? 'Creating Booking...' : 'Book Space'}
                 </button>
               </>
             )}
@@ -203,7 +284,11 @@ function Dashboard() {
         <div className="dashboard-card">
           <h2>My Bookings</h2>
           
-          {bookings.length === 0 ? (
+          {loadingBookings ? (
+            <div className="loading-state">
+              <p>Loading your bookings...</p>
+            </div>
+          ) : bookings.length === 0 ? (
             <p className="no-bookings">You have no active bookings</p>
           ) : (
             <div className="bookings-list">
@@ -211,16 +296,27 @@ function Dashboard() {
                 <div key={booking.bookingId} className="booking-item">
                   <div className="booking-info">
                     <h3>Space {booking.spaceNumber}</h3>
-                    <p><strong>Date:</strong> {new Date(booking.bookingDate).toLocaleDateString('en-GB')}</p>
+                    <p><strong>Date:</strong> {new Date(booking.bookingDate).toLocaleDateString('en-GB', {
+                      weekday: 'long',
+                      month: 'long',
+                      day: 'numeric',
+                      year: 'numeric'
+                    })}</p>
                     {booking.vehicleRegistration && (
                       <p><strong>Vehicle:</strong> {booking.vehicleRegistration}</p>
                     )}
                     <p className="booking-created">
-                      Booked: {new Date(booking.createdAt).toLocaleString('en-GB')}
+                      <small>Booked: {new Date(booking.createdAt).toLocaleString('en-GB', {
+                        year: 'numeric',
+                        month: 'short',
+                        day: 'numeric',
+                        hour: '2-digit',
+                        minute: '2-digit'
+                      })}</small>
                     </p>
                   </div>
                   <button 
-                    onClick={() => handleCancelBooking(booking.bookingId)}
+                    onClick={() => handleCancelBooking(booking.bookingId, booking.bookingDate)}
                     className="btn-danger"
                   >
                     Cancel
