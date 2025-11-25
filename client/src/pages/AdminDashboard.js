@@ -20,6 +20,11 @@ function AdminDashboard() {
   const [newCapacity, setNewCapacity] = useState('');
   const [selectedDate, setSelectedDate] = useState('');
   const [availability, setAvailability] = useState(null);
+  const [dateFrom, setDateFrom] = useState('');
+  const [dateTo, setDateTo] = useState('');
+  const [filteredStats, setFilteredStats] = useState(null);
+  const [searchTerm, setSearchTerm] = useState('');
+  const [selectedBookings, setSelectedBookings] = useState([]);
 
   // Redirect if not admin
   useEffect(() => {
@@ -57,6 +62,79 @@ function AdminDashboard() {
     }
     
     setLoading(false);
+  };
+
+  // ADD THESE TWO FUNCTIONS HERE:
+  
+  const handleFilterStats = async () => {
+    if (!dateFrom || !dateTo) return;
+    
+    setLoading(true);
+    try {
+      // Load all bookings to filter
+      const bookingsRes = await adminAPI.getAllBookings();
+      const allBookings = bookingsRes.data.bookings;
+      
+      // Filter by date range
+      const bookingsInRange = allBookings.filter(booking => {
+        const bookingDate = new Date(booking.bookingDate);
+        const from = new Date(dateFrom);
+        const to = new Date(dateTo);
+        return bookingDate >= from && bookingDate <= to;
+      });
+      
+      // Calculate filtered stats
+      const filtered = {
+        ...stats,
+        totalBookings: bookingsInRange.length,
+        activeBookings: bookingsInRange.filter(b => new Date(b.bookingDate) >= new Date()).length,
+      };
+      
+      setFilteredStats(filtered);
+      setSuccess(`✅ Filter applied`);
+      setTimeout(() => setSuccess(''), 3000);
+    } catch (err) {
+      setError('Failed to filter statistics');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleClearFilter = () => {
+    setDateFrom('');
+    setDateTo('');
+    setFilteredStats(null);
+    setSuccess('✅ Filter cleared');
+    setTimeout(() => setSuccess(''), 3000);
+  };
+
+const handleBulkCancel = async () => {
+    if (selectedBookings.length === 0) return;
+    
+    const reason = window.prompt(`Cancel ${selectedBookings.length} booking(s)?\n\nEnter reason:`);
+    if (!reason) return;
+    
+    setLoading(true);
+    setError('');
+    
+    try {
+      // Cancel each selected booking
+      await Promise.all(
+        selectedBookings.map(bookingId => 
+          adminAPI.cancelBooking(bookingId, reason)
+        )
+      );
+      
+      setSuccess(`✅ Successfully cancelled ${selectedBookings.length} booking(s)`);
+      setSelectedBookings([]);
+      loadData(); // Reload bookings
+      setTimeout(() => setSuccess(''), 5000);
+    } catch (err) {
+      setError('Failed to cancel some bookings');
+      console.error(err);
+    } finally {
+      setLoading(false);
+    }
   };
 
   const handleUpdateCapacity = async (e) => {
@@ -183,91 +261,166 @@ function AdminDashboard() {
           <>
             {/* Statistics Tab */}
             {activeTab === 'stats' && stats && (
-              <div className="stats-grid">
-                <div className="stat-card">
-                  <h3>Total Users</h3>
-                  <p className="stat-number">{stats.totalUsers}</p>
-                </div>
-                <div className="stat-card">
-                  <h3>Total Bookings</h3>
-                  <p className="stat-number">{stats.totalBookings}</p>
-                </div>
-                <div className="stat-card">
-                  <h3>Active Bookings</h3>
-                  <p className="stat-number">{stats.activeBookings}</p>
-                </div>
-                <div className="stat-card">
-                  <h3>Today's Bookings</h3>
-                  <p className="stat-number">{stats.todayBookings}</p>
-                </div>
-                <div className="stat-card">
-                  <h3>Total Capacity</h3>
-                  <p className="stat-number">{stats.totalCapacity}</p>
-                </div>
-                <div className="stat-card">
-                  <h3>Avg Occupancy (7d)</h3>
-                  <p className="stat-number">{stats.averageOccupancyLast7Days}%</p>
-                </div>
+  <>
+    {/* Date Range Filter */}
+    <div className="date-range-filter">
+      <h3>📅 Filter Statistics</h3>
+      <div className="filter-controls">
+        <div className="filter-group">
+          <label>From:</label>
+          <input
+            type="date"
+            value={dateFrom}
+            onChange={(e) => setDateFrom(e.target.value)}
+          />
+        </div>
+        <div className="filter-group">
+          <label>To:</label>
+          <input
+            type="date"
+            value={dateTo}
+            onChange={(e) => setDateTo(e.target.value)}
+          />
+        </div>
+        <button 
+          onClick={handleFilterStats}
+          className="btn-primary"
+          disabled={!dateFrom || !dateTo}
+        >
+          Apply Filter
+        </button>
+        {(dateFrom || dateTo) && (
+          <button 
+            onClick={handleClearFilter}
+            className="btn-secondary"
+          >
+            Clear Filter
+          </button>
+        )}
+      </div>
+      {filteredStats && (
+        <p className="filter-info">
+          Showing stats from {new Date(dateFrom).toLocaleDateString('en-GB')} to {new Date(dateTo).toLocaleDateString('en-GB')}
+        </p>
+      )}
+    </div>
 
-                <div className="stat-card wide">
-                  <h3>Popular Spaces</h3>
-                  <div className="popular-spaces">
-                    {stats.popularSpaces.map((space, index) => (
-                      <div key={space.spaceNumber} className="popular-space-item">
-                        <span className="rank">#{index + 1}</span>
-                        <span className="space">Space {space.spaceNumber}</span>
-                        <span className="count">{space.bookingCount} bookings</span>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-
-                <div className="stat-card wide">
-                  <h3>Busiest Days (Last 30 Days)</h3>
-                  <div className="busiest-days">
-                    {stats.busiestDays.map(day => (
-                      <div key={day.date} className="busy-day-item">
-                        <span className="date">{new Date(day.date).toLocaleDateString('en-GB')}</span>
-                        <span className="count">{day.bookingCount} bookings</span>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-
-                {config && (
-                  <div className="stat-card wide">
-                    <h3>Update Parking Capacity</h3>
-                    <p>Current capacity: <strong>{config.total_spaces.value} spaces</strong></p>
-                    <form onSubmit={handleUpdateCapacity} className="capacity-form">
-                      <input
-                        type="number"
-                        value={newCapacity}
-                        onChange={(e) => setNewCapacity(e.target.value)}
-                        placeholder="Enter new capacity"
-                        min="1"
-                        max="1000"
-                        required
-                      />
-                      <button type="submit" className="btn-primary">
-                        Update Capacity
-                      </button>
-                    </form>
-                  </div>
-                )}
-              </div>
-            )}
+    <div className="stats-grid">
+      <div className="stat-card">
+        <h3>Total Users</h3>
+        <p className="stat-number">{(filteredStats || stats).totalUsers}</p>
+      </div>
+      <div className="stat-card">
+        <h3>Total Bookings</h3>
+        <p className="stat-number">{(filteredStats || stats).totalBookings}</p>
+      </div>
+      <div className="stat-card">
+        <h3>Active Bookings</h3>
+        <p className="stat-number">{(filteredStats || stats).activeBookings}</p>
+      </div>
+      <div className="stat-card">
+        <h3>Today's Bookings</h3>
+        <p className="stat-number">{(filteredStats || stats).todayBookings}</p>
+      </div>
+      <div className="stat-card">
+        <h3>Total Capacity</h3>
+        <p className="stat-number">{(filteredStats || stats).totalCapacity}</p>
+      </div>
+      <div className="stat-card">
+        <h3>Avg Occupancy (7d)</h3>
+        <p className="stat-number">{(filteredStats || stats).averageOccupancyLast7Days}%</p>
+      </div>
+      <div className="stat-card wide">
+        <h3>Popular Spaces</h3>
+        <div className="popular-spaces">
+          {stats.popularSpaces.map((space, index) => (
+            <div key={space.spaceNumber} className="popular-space-item">
+              <span className="rank">#{index + 1}</span>
+              <span className="space">Space {space.spaceNumber}</span>
+              <span className="count">{space.bookingCount} bookings</span>
+            </div>
+          ))}
+        </div>
+      </div>
+      <div className="stat-card wide">
+        <h3>Busiest Days (Last 30 Days)</h3>
+        <div className="busiest-days">
+          {stats.busiestDays.map(day => (
+            <div key={day.date} className="busy-day-item">
+              <span className="date">{new Date(day.date).toLocaleDateString('en-GB')}</span>
+              <span className="count">{day.bookingCount} bookings</span>
+            </div>
+          ))}
+        </div>
+      </div>
+      {config && (
+        <div className="stat-card wide">
+          <h3>Update Parking Capacity</h3>
+          <p>Current capacity: <strong>{config.total_spaces.value} spaces</strong></p>
+          <form onSubmit={handleUpdateCapacity} className="capacity-form">
+            <input
+              type="number"
+              value={newCapacity}
+              onChange={(e) => setNewCapacity(e.target.value)}
+              placeholder="Enter new capacity"
+              min="1"
+              max="1000"
+              required
+            />
+            <button type="submit" className="btn-primary">
+              Update Capacity
+            </button>
+          </form>
+        </div>
+      )}
+    </div>
+  </>
+)}
 
             {/* Bookings Tab */}
             {activeTab === 'bookings' && (
               <div className="bookings-table-container">
                 <h2>All Bookings ({bookings.length})</h2>
+                
+                {/* Search and Bulk Actions */}
+                <div className="bookings-controls">
+                  <input
+                    type="text"
+                    placeholder="🔍 Search by user name, email, or date..."
+                    value={searchTerm}
+                    onChange={(e) => setSearchTerm(e.target.value)}
+                    className="search-input"
+                  />
+                  {selectedBookings.length > 0 && (
+                    <button
+                      onClick={handleBulkCancel}
+                      className="btn-danger"
+                    >
+                      Cancel Selected ({selectedBookings.length})
+                    </button>
+                  )}
+                </div>
+
                 {bookings.length === 0 ? (
                   <p className="no-data">No bookings found</p>
                 ) : (
                   <table className="bookings-table">
                     <thead>
                       <tr>
-                        <th>ID</th>
+  <th>
+    <input
+      type="checkbox"
+      onChange={(e) => {
+        if (e.target.checked) {
+          setSelectedBookings(bookings.map(b => b.bookingId));
+        } else {
+          setSelectedBookings([]);
+        }
+      }}
+      checked={selectedBookings.length === bookings.length && bookings.length > 0}
+    />
+  </th>
+  <th>ID</th>
                         <th>User</th>
                         <th>Date</th>
                         <th>Space</th>
@@ -277,9 +430,33 @@ function AdminDashboard() {
                       </tr>
                     </thead>
                     <tbody>
-                      {bookings.map(booking => (
+                      {bookings
+  .filter(booking => {
+    if (!searchTerm) return true;
+    const search = searchTerm.toLowerCase();
+    return (
+      booking.userName.toLowerCase().includes(search) ||
+      booking.userEmail.toLowerCase().includes(search) ||
+      booking.bookingDate.includes(search) ||
+      booking.spaceNumber.toString().includes(search)
+    );
+  })
+  .map(booking => (
                         <tr key={booking.bookingId}>
-                          <td>{booking.bookingId}</td>
+  <td>
+    <input
+      type="checkbox"
+      checked={selectedBookings.includes(booking.bookingId)}
+      onChange={(e) => {
+        if (e.target.checked) {
+          setSelectedBookings([...selectedBookings, booking.bookingId]);
+        } else {
+          setSelectedBookings(selectedBookings.filter(id => id !== booking.bookingId));
+        }
+      }}
+    />
+  </td>
+  <td>{booking.bookingId}</td>
                           <td>
                             <div>{booking.userName}</div>
                             <small>{booking.userEmail}</small>
