@@ -1,63 +1,254 @@
 # IBM Leicester Parking Portal
 
-**A web-based parking management system for IBM CIC Leicester**
-
----
-
-## 📋 Project Information
-
-- **Student:** Rizwan Lunat (P2605119)
-- **Employer:** IBM
-- **Supervisor:** Vasileios Germanos
-- **Module:** CTEC3360 - Final Year Project
-- **Academic Year:** 2025/26
-
----
-
-## 🎯 Project Overview
-
-This system addresses parking management inefficiencies at IBM Leicester by providing:
-
-- ✅ 24-hour advance booking system
-- ✅ Real-time availability tracking
-- ✅ Booking history management
-- ✅ Data analytics for facilities management
-- ✅ Mobile-responsive design
-- ✅ Role-based access control
+A web-based parking management system for booking parking spaces up to 24 hours in advance.
 
 ---
 
 ## 🛠️ Technology Stack
 
-### Frontend
-- React 18.x
-- Material-UI (MUI) 5.x
-- Chart.js 4.x
-- Axios
+**Frontend:** React, React Router, Axios  
+**Backend:** Node.js, Express, PostgreSQL  
+**Security:** JWT, bcrypt, CORS, Helmet
 
-### Backend
-- Node.js 18.x
-- Express 4.x
-- PostgreSQL 15.x
-- JSON Web Tokens (JWT)
-- bcrypt
+---
+
+## 📦 Prerequisites
+
+Before you start, make sure you have these installed:
+
+- **Node.js** (version 18 or higher) - [Download here](https://nodejs.org/)
+- **PostgreSQL** (version 14 or higher) - [Download here](https://www.postgresql.org/download/)
+
+---
+
+## 🚀 Installation Steps
+
+### Step 1: Get the Code
+
+If you received the code as a ZIP file or folder, extract it and navigate to it:
+```bash
+cd ibm-leicester-parking-portal
+```
+
+If you're cloning from a Git repository:
+```bash
+git clone <repository-url>
+cd ibm-leicester-parking-portal
+```
+
+---
+
+### Step 2: Setup the Database
+
+**Start PostgreSQL** (choose the method for your system):
+```bash
+# macOS (if you installed via Homebrew):
+brew services start postgresql
+
+# macOS (if you use Postgres.app):
+# Just open the Postgres.app
+
+# Windows:
+# PostgreSQL runs automatically as a service after installation
+
+# Linux:
+sudo systemctl start postgresql
+```
+
+**Create an empty database:**
+```bash
+createdb parking_portal
+```
+
+**OR using psql:**
+```bash
+psql -U postgres
+CREATE DATABASE parking_portal;
+\q
+```
+
+---
+
+### Step 3: Setup the Backend
+```bash
+cd server
+npm install
+```
+
+**Create a `.env` file** inside the `server` folder with these settings:
+```env
+PORT=5001
+DATABASE_URL=postgresql://yourusername:yourpassword@localhost:5432/parking_portal
+JWT_SECRET=your-secret-key-change-this
+NODE_ENV=development
+```
+
+**Important:** Replace `yourusername` and `yourpassword` with your actual PostgreSQL credentials.
+
+**Initialise the database** (creates tables and adds sample data):
+```bash
+node src/scripts/initDatabase.js
+```
+
+You should see: ✅ Database initialized successfully!
+
+---
+
+### Step 4: Setup the Frontend
+```bash
+cd ../client
+npm install
+```
+
+---
+
+## ▶️ Running the Application
+
+You need **TWO terminal windows** open at the same time:
+
+### Terminal 1: Start the Backend
+```bash
+cd server
+npm run dev
+```
+
+**You should see:**
+```
+✅ Connected to PostgreSQL database
+🚀 Server running on port 5001
+```
+
+### Terminal 2: Start the Frontend
+```bash
+cd client
+npm start
+```
+
+**You should see:**
+```
+Compiled successfully!
+Local: http://localhost:3000
+```
+
+Your browser should automatically open. If not, go to: **http://localhost:3000**
+
+---
+
+## 👥 Test Accounts
+
+The system comes with ready-to-use test accounts:
+
+### Regular User Accounts
+
+| Email | Password |
+|-------|----------|
+| john.doe@ibm.com | password123 |
+| jane.smith@ibm.com | password123 |
+| mike.jones@ibm.com | password123 |
+
+### Administrator Account
+
+| Email | Password |
+|-------|----------|
+| admin@ibm.com | admin123 |
+
+**Use these to login and test all features!**
+
+---
+
+## ✨ What You Can Do
+
+### As a Regular User:
+- ✅ Register and login
+- ✅ Book parking for today or tomorrow
+- ✅ Check real-time availability
+- ✅ View your bookings
+- ✅ Cancel bookings
+
+### As an Administrator:
+- ✅ View system statistics
+- ✅ Filter stats by date range
+- ✅ Search all bookings
+- ✅ Cancel multiple bookings at once
+- ✅ Manage users
+- ✅ Update parking capacity
 
 ---
 
 ## 📁 Project Structure
 ```
 ibm-leicester-parking-portal/
-├── client/          (React frontend)
-├── server/          (Node.js backend)
-└── docs/            (Documentation)
+│
+├── client/                    # Frontend (React)
+│   ├── public/               # Static files
+│   ├── src/
+│   │   ├── pages/           # Login, Dashboard, Admin pages
+│   │   ├── services/        # API calls
+│   │   └── context/         # Authentication
+│   └── package.json
+│
+├── server/                    # Backend (Node.js)
+│   ├── src/
+│   │   ├── controllers/     # Business logic
+│   │   ├── routes/          # API endpoints
+│   │   ├── middleware/      # Security & auth
+│   │   ├── models/          # Database queries
+│   │   ├── config/          # Database connection
+│   │   └── scripts/         # Database setup
+│   ├── .env                 # Configuration (you create this)
+│   └── package.json
+│
+└── README.md                 # This file
 ```
 
 ---
 
-## 🚀 Getting Started
+## 🔌 API Endpoints
 
-Documentation coming soon...
+**Authentication:**
+- `POST /api/auth/register` - Create account
+- `POST /api/auth/login` - Login
+
+**Bookings:**
+- `GET /api/bookings` - Get your bookings
+- `POST /api/bookings` - Create booking
+- `DELETE /api/bookings/:id` - Cancel booking
+- `GET /api/bookings/availability/:date` - Check availability
+
+**Admin Only:**
+- `GET /api/admin/stats` - View statistics
+- `GET /api/admin/bookings` - View all bookings
+- `PUT /api/admin/capacity` - Update capacity
 
 ---
 
-**Last Updated:** November 2025
+## 🔒 Security Features
+
+- Password encryption (bcrypt)
+- Secure authentication (JWT tokens)
+- Protection against SQL injection
+- Protection against XSS attacks
+- CSRF token protection
+- Rate limiting on login attempts
+- Role-based access control
+
+---
+
+## 🛑 Troubleshooting
+
+**Problem:** Database connection error  
+**Solution:** Check your `.env` file has correct PostgreSQL username/password
+
+**Problem:** Port 3000 or 5001 already in use  
+**Solution:** Stop any other applications using these ports
+
+**Problem:** "Cannot find module" errors  
+**Solution:** Run `npm install` again in both `server` and `client` folders
+
+**Problem:** Favicon not updating  
+**Solution:** Hard refresh browser (`Cmd+Shift+R` on Mac, `Ctrl+Shift+R` on Windows)
+
+---
+
+**Last Updated:** November 2025  
+**Status:** ✅ Complete and Ready
