@@ -106,14 +106,21 @@ function Dashboard() {
   return (
     <div className="dashboard-container">
       <header className="dashboard-header">
-        <div>
-          <h1>IBM Leicester Parking Portal</h1>
-          <p>Welcome, {user?.name}!</p>
-        </div>
-        <button onClick={handleLogout} className="btn-secondary">
-          Logout
-        </button>
-      </header>
+  <div>
+    <h1>IBM Leicester Parking Portal</h1>
+    <p>Welcome, {user?.name}!</p>
+  </div>
+  <div className="header-buttons">
+    {user?.role === 'admin' && (
+      <button onClick={() => navigate('/admin')} className="btn-secondary">
+        Admin Dashboard
+      </button>
+    )}
+    <button onClick={handleLogout} className="btn-secondary">
+      Logout
+    </button>
+  </div>
+</header>
 
       <div className="dashboard-content">
         {/* Book Parking Section */}
