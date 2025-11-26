@@ -57,13 +57,15 @@ sudo systemctl start postgresql
 
 **Create an empty database:**
 ```bash
-createdb parking_portal
+createdb parking_portal_db
 ```
 
 **OR using psql:**
 ```bash
 psql -U postgres
-CREATE DATABASE parking_portal;
+CREATE DATABASE parking_portal_db;
+CREATE USER parking_admin;
+GRANT ALL PRIVILEGES ON DATABASE parking_portal_db TO parking_admin;
 \q
 ```
 
@@ -78,16 +80,22 @@ npm install
 **Create a `.env` file** inside the `server` folder with these settings:
 ```env
 PORT=5001
-DATABASE_URL=postgresql://yourusername:yourpassword@localhost:5432/parking_portal
+DB_HOST=localhost
+DB_PORT=5432
+DB_NAME=parking_portal_db
+DB_USER=parking_admin
+DB_PASSWORD=
 JWT_SECRET=your-secret-key-change-this
 NODE_ENV=development
 ```
 
-**Important:** Replace `yourusername` and `yourpassword` with your actual PostgreSQL credentials.
+**Important:** 
+- If your PostgreSQL user has a password, add it to `DB_PASSWORD=`
+- Change `JWT_SECRET` to something secure in production
 
-**Initialise the database** (creates tables and adds sample data):
+**Initialize the database** (creates tables and adds sample data):
 ```bash
-node src/scripts/initDatabase.js
+node scripts/initDatabase.js
 ```
 
 You should see: ✅ Database initialized successfully!
@@ -144,7 +152,7 @@ The system comes with ready-to-use test accounts:
 |-------|----------|
 | john.doe@ibm.com | password123 |
 | jane.smith@ibm.com | password123 |
-| mike.jones@ibm.com | password123 |
+| mike.johnson@ibm.com | password123 |
 
 ### Administrator Account
 
@@ -188,13 +196,12 @@ ibm-leicester-parking-portal/
 │   └── package.json
 │
 ├── server/                    # Backend (Node.js)
-│   ├── src/
-│   │   ├── controllers/     # Business logic
-│   │   ├── routes/          # API endpoints
-│   │   ├── middleware/      # Security & auth
-│   │   ├── models/          # Database queries
-│   │   ├── config/          # Database connection
-│   │   └── scripts/         # Database setup
+│   ├── config/              # Database connection
+│   ├── controllers/         # Business logic
+│   ├── routes/              # API endpoints
+│   ├── middleware/          # Security & auth
+│   ├── migrations/          # Database migrations
+│   ├── scripts/             # Database setup scripts
 │   ├── .env                 # Configuration (you create this)
 │   └── package.json
 │
@@ -237,13 +244,16 @@ ibm-leicester-parking-portal/
 ## 🛑 Troubleshooting
 
 **Problem:** Database connection error  
-**Solution:** Check your `.env` file has correct PostgreSQL username/password
+**Solution:** Check your `.env` file has correct PostgreSQL credentials. Make sure `DB_NAME=parking_portal_db` and `DB_USER=parking_admin`
 
 **Problem:** Port 3000 or 5001 already in use  
 **Solution:** Stop any other applications using these ports
 
 **Problem:** "Cannot find module" errors  
 **Solution:** Run `npm install` again in both `server` and `client` folders
+
+**Problem:** Database initialization fails  
+**Solution:** Make sure you created the database first with `createdb parking_portal_db`
 
 **Problem:** Favicon not updating  
 **Solution:** Hard refresh browser (`Cmd+Shift+R` on Mac, `Ctrl+Shift+R` on Windows)
