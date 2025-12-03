@@ -262,3 +262,26 @@ ibm-leicester-parking-portal/
 
 **Last Updated:** November 2025  
 **Status:** ✅ Complete and Ready
+
+---
+
+## ⚠️ Known Issues
+
+### OneDrive Sync Conflicts
+
+If you're storing this project in OneDrive, you may encounter sync errors with files named `~` inside `node_modules`. This is caused by the `postcss-initial` package which contains folders with the `~` character that OneDrive doesn't support.
+
+**Solution:**
+
+After running `npm install` in the client folder, rename the problematic folder:
+```bash
+cd client/node_modules/postcss-initial
+mv "~" "tilde_config"
+cd ../../..
+```
+
+**Better Solution:**
+
+Store the project outside of OneDrive (e.g., in `~/Documents` or `~/Desktop` directly) to avoid cloud sync issues with `node_modules` folders.
+
+---
