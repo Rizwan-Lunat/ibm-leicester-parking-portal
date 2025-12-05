@@ -35,6 +35,9 @@ const createBooking = async (req, res) => {
       });
     }
 
+    // Start transaction after basic validations
+    await client.query('BEGIN');
+
     // Check if user already has a booking for this date
     const existingUserBooking = await client.query(
       `SELECT booking_id FROM bookings 
@@ -43,20 +46,23 @@ const createBooking = async (req, res) => {
     );
 
     if (existingUserBooking.rows.length > 0) {
+      await client.query('ROLLBACK');
       return res.status(409).json({
         error: 'Booking conflict',
         message: 'You already have a booking for this date'
       });
     }
 
-    // Check if space is available for this date
+    // Check if space is available for this date (with row locking)
     const spaceCheck = await client.query(
       `SELECT booking_id FROM bookings 
-       WHERE space_number = $1 AND booking_date = $2 AND cancelled_at IS NULL`,
+       WHERE space_number = $1 AND booking_date = $2 AND cancelled_at IS NULL
+       FOR UPDATE`,
       [space_number, booking_date]
     );
 
     if (spaceCheck.rows.length > 0) {
+      await client.query('ROLLBACK');
       return res.status(409).json({
         error: 'Space unavailable',
         message: 'This parking space is already booked for the selected date'
@@ -71,6 +77,7 @@ const createBooking = async (req, res) => {
 
     // Validate space number
     if (space_number < 1 || space_number > totalSpaces) {
+      await client.query('ROLLBACK');
       return res.status(400).json({
         error: 'Invalid space number',
         message: `Space number must be between 1 and ${totalSpaces}`
@@ -87,6 +94,9 @@ const createBooking = async (req, res) => {
 
     const booking = result.rows[0];
 
+    // Commit transaction
+    await client.query('COMMIT');
+
     res.status(201).json({
       message: 'Booking created successfully',
       booking: {
@@ -100,6 +110,7 @@ const createBooking = async (req, res) => {
     });
 
   } catch (error) {
+    await client.query('ROLLBACK');
     console.error('Create booking error:', error);
     
     // Handle unique constraint violation (race condition)
