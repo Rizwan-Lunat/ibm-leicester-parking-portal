@@ -95,7 +95,7 @@ NODE_ENV=development
 
 **Initialize the database** (creates tables and adds sample data):
 ```bash
-node scripts/initDatabase.js
+node migrations/initDatabase.js
 ```
 
 You should see: ✅ Database initialized successfully!
@@ -150,15 +150,15 @@ The system comes with ready-to-use test accounts:
 
 | Email | Password |
 |-------|----------|
-| john.doe@ibm.com | password123 |
-| jane.smith@ibm.com | password123 |
-| mike.johnson@ibm.com | password123 |
+| john.doe@ibm.com | Password123! |
+| jane.smith@ibm.com | Password123! |
+| mike.johnson@ibm.com | Password123! |
 
 ### Administrator Account
 
 | Email | Password |
 |-------|----------|
-| admin@ibm.com | admin123 |
+| admin@ibm.com | Admin123! |
 
 **Use these to login and test all features!**
 
