@@ -9,14 +9,25 @@ const seedData = async () => {
     const userPassword = await bcrypt.hash('Password123!', 10);
     const adminPassword = await bcrypt.hash('Admin123!', 10);
     
-    // Generate 30 users - first 5 match README documentation
-    const users = [
+    // First 5 users match README documentation
+    const testUsers = [
       { name: 'John Doe', email: 'john.doe@ibm.com', phone: '07700900123' },
       { name: 'Jane Smith', email: 'jane.smith@ibm.com', phone: '07700900124' },
       { name: 'Mike Johnson', email: 'mike.johnson@ibm.com', phone: '07700900125' },
       { name: 'Sarah Williams', email: 'sarah.williams@ibm.com', phone: '07700900126' },
       { name: 'Emma Brown', email: 'emma.brown@ibm.com', phone: '07700900127' }
     ];
+    
+    console.log('👥 Creating 30 users (first 5 match README test accounts)...');
+    
+    // Insert first 5 test users
+    for (const user of testUsers) {
+      await pool.query(`
+        INSERT INTO users (name, email, password_hash, phone, role)
+        VALUES ($1, $2, $3, $4, 'user')
+        ON CONFLICT (email) DO NOTHING;
+      `, [user.name, user.email, userPassword, user.phone]);
+    }
     
     // Generate 24 more users with varied names
     const firstNames = ['James', 'Emily', 'David', 'Sophie', 'Daniel', 'Olivia', 'Thomas', 'Charlotte', 'Matthew', 'Amelia',
@@ -28,36 +39,23 @@ const seedData = async () => {
                        'Scott', 'Cooper', 'King', 'Moore'];
     
     for (let i = 0; i < 24; i++) {
-      users.push({
-        name: `${firstNames[i]} ${lastNames[i]}`,
-        email: `${firstNames[i].toLowerCase()}.${lastNames[i].toLowerCase()}@ibm.com`,
-        phone: `07700${String(900128 + i).padStart(6, '0')}`
-      });
+      const name = `${firstNames[i]} ${lastNames[i]}`;
+      const email = `${firstNames[i].toLowerCase()}.${lastNames[i].toLowerCase()}@ibm.com`;
+      const phone = `07700${String(900128 + i).padStart(6, '0')}`;
+      
+      await pool.query(`
+        INSERT INTO users (name, email, password_hash, phone, role)
+        VALUES ($1, $2, $3, $4, 'user')
+        ON CONFLICT (email) DO NOTHING;
+      `, [name, email, userPassword, phone]);
     }
     
-    console.log('👥 Creating 30 users (first 5 match README test accounts)...');
-    
-    // Create user insert values
-    const userValues = [];
-    const userParams = [];
-    let paramCounter = 1;
-    
-    for (let i = 0; i < users.length; i++) {
-      userValues.push(`(${paramCounter}, ${paramCounter + 1}, ${paramCounter + 2}, ${paramCounter + 3}, ${paramCounter + 4})`);
-      userParams.push(users[i].name, users[i].email, userPassword, users[i].phone, 'user');
-      paramCounter += 5;
-    }
-    
-    // Add admin user
-    userValues.push(`($${paramCounter}, $${paramCounter + 1}, $${paramCounter + 2}, $${paramCounter + 3}, $${paramCounter + 4})`);
-    userParams.push('Admin User', 'admin@ibm.com', adminPassword, '07700900100', 'admin');
-    
-    // Insert all users
+    // Insert admin user
     await pool.query(`
       INSERT INTO users (name, email, password_hash, phone, role)
-      VALUES ${userValues.join(', ')}
+      VALUES ('Admin User', 'admin@ibm.com', $1, '07700900100', 'admin')
       ON CONFLICT (email) DO NOTHING;
-    `, userParams);
+    `, [adminPassword]);
     
     console.log('✅ 30 users created (29 regular + 1 admin)');
     console.log('   Regular users: Password123!');
@@ -65,12 +63,11 @@ const seedData = async () => {
     
     // Get user IDs for creating bookings
     const usersResult = await pool.query('SELECT user_id FROM users WHERE role = \'user\' ORDER BY user_id');
-    const users = usersResult.rows;
+    const userRecords = usersResult.rows;
     
-    if (users.length > 0) {
+    if (userRecords.length > 0) {
       console.log('\n📅 Creating bookings from 7th Dec 2025 to 19th Jan 2026...');
       
-      const bookings = [];
       const startDate = new Date('2025-12-07');
       const endDate = new Date('2026-01-19');
       
@@ -78,8 +75,7 @@ const seedData = async () => {
       const vehiclePrefixes = ['AB', 'CD', 'EF', 'GH', 'IJ', 'KL', 'MN', 'OP', 'QR', 'ST', 'UV', 'WX', 'YZ'];
       
       // Assign each user a booking frequency pattern
-      // Patterns: daily (70%), frequent (50%), occasional (30%), rare (10%)
-      const userPatterns = users.map(() => {
+      const userPatterns = userRecords.map(() => {
         const rand = Math.random();
         if (rand < 0.3) return 0.70;  // 30% are daily parkers
         if (rand < 0.6) return 0.50;  // 30% are frequent parkers
@@ -87,9 +83,8 @@ const seedData = async () => {
         return 0.10;                   // 15% are rare parkers
       });
       
-      // Generate bookings for each weekday
-      let currentDate = new Date(startDate);
       let totalBookings = 0;
+      let currentDate = new Date(startDate);
       
       while (currentDate <= endDate) {
         const dayOfWeek = currentDate.getDay();
@@ -100,8 +95,8 @@ const seedData = async () => {
           const usedSpaces = new Set();
           
           // Each user decides if they book today based on their pattern
-          users.forEach((user, index) => {
-            const bookingProbability = userPatterns[index];
+          for (let i = 0; i < userRecords.length; i++) {
+            const bookingProbability = userPatterns[i];
             
             if (Math.random() < bookingProbability) {
               // Get random space number (1-60) that hasn't been used today
@@ -123,39 +118,19 @@ const seedData = async () => {
                               String.fromCharCode(65 + Math.floor(Math.random() * 26));
                 const registration = `${prefix}${numbers} ${suffix}`;
                 
-                bookings.push({
-                  userId: user.user_id,
-                  date: dateStr,
-                  space: spaceNumber,
-                  reg: registration
-                });
+                await pool.query(`
+                  INSERT INTO bookings (user_id, booking_date, space_number, vehicle_registration)
+                  VALUES ($1, $2, $3, $4)
+                  ON CONFLICT DO NOTHING;
+                `, [userRecords[i].user_id, dateStr, spaceNumber, registration]);
+                
                 totalBookings++;
               }
             }
-          });
+          }
         }
         
         currentDate.setDate(currentDate.getDate() + 1);
-      }
-      
-      console.log(`   Inserting ${totalBookings} bookings...`);
-      
-      // Insert bookings in batches for better performance
-      const batchSize = 100;
-      for (let i = 0; i < bookings.length; i += batchSize) {
-        const batch = bookings.slice(i, i + batchSize);
-        
-        for (const booking of batch) {
-          await pool.query(`
-            INSERT INTO bookings (user_id, booking_date, space_number, vehicle_registration)
-            VALUES ($1, $2, $3, $4)
-            ON CONFLICT DO NOTHING;
-          `, [booking.userId, booking.date, booking.space, booking.reg]);
-        }
-        
-        if (i % 500 === 0 && i > 0) {
-          console.log(`   Progress: ${i}/${totalBookings} bookings inserted...`);
-        }
       }
       
       console.log(`✅ ${totalBookings} bookings created`);
