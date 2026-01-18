@@ -48,8 +48,8 @@ const seedData = async () => {
     `, userParams);
     
     console.log('✅ 30 users created (29 regular + 1 admin)');
-    console.log('   Regular users: password123');
-    console.log('   Admin user: admin123');
+    console.log('   Regular users: Password123!');
+    console.log('   Admin user: Admin123!');
     
     // Get user IDs for creating bookings
     const usersResult = await pool.query('SELECT user_id FROM users WHERE role = \'user\' ORDER BY user_id');
