@@ -31,24 +31,56 @@ const seedData = async () => {
     const users = usersResult.rows;
     
     if (users.length >= 5) {
-      // Create bookings for today (Sunday 18th Jan) and tomorrow (Monday 19th Jan)
-      const bookings = [
-        // Sunday 18th January 2026 - Today
-        { userId: users[0].user_id, date: '2026-01-18', space: 1, reg: 'AB12 CDE' },
-        { userId: users[1].user_id, date: '2026-01-18', space: 2, reg: 'FG34 HIJ' },
-        { userId: users[2].user_id, date: '2026-01-18', space: 3, reg: 'KL56 MNO' },
-        { userId: users[3].user_id, date: '2026-01-18', space: 5, reg: 'UV90 WXY' },
-        { userId: users[4].user_id, date: '2026-01-18', space: 7, reg: 'ZA12 BCD' },
-        
-        // Monday 19th January 2026 - Tomorrow
-        { userId: users[0].user_id, date: '2026-01-19', space: 1, reg: 'AB12 CDE' },
-        { userId: users[1].user_id, date: '2026-01-19', space: 4, reg: 'FG34 HIJ' },
-        { userId: users[2].user_id, date: '2026-01-19', space: 6, reg: 'KL56 MNO' },
-        { userId: users[3].user_id, date: '2026-01-19', space: 8, reg: 'UV90 WXY' },
-        { userId: users[4].user_id, date: '2026-01-19', space: 10, reg: 'ZA12 BCD' },
-      ];
+      console.log('📅 Creating bookings from 7th Dec 2025 to 19th Jan 2026...\n');
       
-      // Insert all bookings
+      const bookings = [];
+      const startDate = new Date('2025-12-07');
+      const endDate = new Date('2026-01-19');
+      
+      // Vehicle registrations for variety
+      const vehicles = ['AB12 CDE', 'FG34 HIJ', 'KL56 MNO', 'UV90 WXY', 'ZA12 BCD'];
+      
+      // Generate bookings for each day (weekdays only - Mon-Fri)
+      let currentDate = new Date(startDate);
+      let totalBookings = 0;
+      
+      while (currentDate <= endDate) {
+        const dayOfWeek = currentDate.getDay(); // 0 = Sunday, 6 = Saturday
+        
+        // Only create bookings for weekdays (Monday-Friday)
+        if (dayOfWeek >= 1 && dayOfWeek <= 5) {
+          const dateStr = currentDate.toISOString().split('T')[0];
+          
+          // Random number of bookings per day (between 3-8 bookings)
+          const numBookings = Math.floor(Math.random() * 6) + 3;
+          const usedSpaces = new Set();
+          
+          for (let i = 0; i < numBookings && i < users.length; i++) {
+            // Get random space number (1-60) that hasn't been used today
+            let spaceNumber;
+            do {
+              spaceNumber = Math.floor(Math.random() * 60) + 1;
+            } while (usedSpaces.has(spaceNumber));
+            
+            usedSpaces.add(spaceNumber);
+            
+            bookings.push({
+              userId: users[i % users.length].user_id,
+              date: dateStr,
+              space: spaceNumber,
+              reg: vehicles[i % vehicles.length]
+            });
+            totalBookings++;
+          }
+        }
+        
+        // Move to next day
+        currentDate.setDate(currentDate.getDate() + 1);
+      }
+      
+      console.log(`   Inserting ${totalBookings} bookings...`);
+      
+      // Insert all bookings in batches
       for (const booking of bookings) {
         await pool.query(`
           INSERT INTO bookings (user_id, booking_date, space_number, vehicle_registration)
@@ -57,10 +89,9 @@ const seedData = async () => {
         `, [booking.userId, booking.date, booking.space, booking.reg]);
       }
       
-      console.log('✅ Sample bookings created');
-      console.log('   - 2026-01-18 (Sunday - Today): 5 bookings');
-      console.log('   - 2026-01-19 (Monday - Tomorrow): 5 bookings');
-      console.log('   Total: 10 bookings across 2 days');
+      console.log(`✅ ${totalBookings} bookings created across weekdays`);
+      console.log('   Date range: 7th Dec 2025 - 19th Jan 2026');
+      console.log('   Pattern: Weekdays only (Mon-Fri), 3-8 bookings per day');
     }
     
     console.log('\n🎉 Database seeding completed successfully!');
