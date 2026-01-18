@@ -6,8 +6,8 @@ const seedData = async () => {
     console.log('🌱 Starting database seeding...\n');
     
     // Hash passwords (matching README documentation)
-    const userPassword = await bcrypt.hash('password123', 10);
-    const adminPassword = await bcrypt.hash('admin123', 10);
+    const userPassword = await bcrypt.hash('Password123!', 10);
+    const adminPassword = await bcrypt.hash('Admin123!', 10);
     
     // Generate 30 users with varied names
     const firstNames = ['John', 'Jane', 'Mike', 'Sarah', 'Emma', 'James', 'Emily', 'David', 'Sophie', 'Daniel',
