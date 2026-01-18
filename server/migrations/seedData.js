@@ -9,30 +9,42 @@ const seedData = async () => {
     const userPassword = await bcrypt.hash('Password123!', 10);
     const adminPassword = await bcrypt.hash('Admin123!', 10);
     
-    // Generate 30 users with varied names
-    const firstNames = ['John', 'Jane', 'Mike', 'Sarah', 'Emma', 'James', 'Emily', 'David', 'Sophie', 'Daniel',
-                        'Olivia', 'Thomas', 'Charlotte', 'Matthew', 'Amelia', 'Andrew', 'Lucy', 'Ryan', 'Grace', 'Jack',
-                        'Hannah', 'Benjamin', 'Chloe', 'Samuel', 'Ella', 'Alexander', 'Mia', 'William', 'Ava'];
+    // Generate 30 users - first 5 match README documentation
+    const users = [
+      { name: 'John Doe', email: 'john.doe@ibm.com', phone: '07700900123' },
+      { name: 'Jane Smith', email: 'jane.smith@ibm.com', phone: '07700900124' },
+      { name: 'Mike Johnson', email: 'mike.johnson@ibm.com', phone: '07700900125' },
+      { name: 'Sarah Williams', email: 'sarah.williams@ibm.com', phone: '07700900126' },
+      { name: 'Emma Brown', email: 'emma.brown@ibm.com', phone: '07700900127' }
+    ];
     
-    const lastNames = ['Smith', 'Jones', 'Williams', 'Brown', 'Taylor', 'Davies', 'Wilson', 'Evans', 'Thomas', 'Roberts',
-                       'Johnson', 'Walker', 'Wright', 'Robinson', 'Thompson', 'White', 'Hughes', 'Edwards', 'Green', 'Hall',
-                       'Wood', 'Harris', 'Martin', 'Jackson', 'Clarke', 'Lewis', 'Scott', 'Cooper', 'King'];
+    // Generate 24 more users with varied names
+    const firstNames = ['James', 'Emily', 'David', 'Sophie', 'Daniel', 'Olivia', 'Thomas', 'Charlotte', 'Matthew', 'Amelia',
+                        'Andrew', 'Lucy', 'Ryan', 'Grace', 'Jack', 'Hannah', 'Benjamin', 'Chloe', 'Samuel', 'Ella',
+                        'Alexander', 'Mia', 'William', 'Ava'];
     
-    console.log('👥 Creating 30 users...');
+    const lastNames = ['Davies', 'Wilson', 'Evans', 'Thomas', 'Roberts', 'Walker', 'Wright', 'Robinson', 'Thompson', 'White',
+                       'Hughes', 'Edwards', 'Green', 'Hall', 'Wood', 'Harris', 'Martin', 'Jackson', 'Clarke', 'Lewis',
+                       'Scott', 'Cooper', 'King', 'Moore'];
+    
+    for (let i = 0; i < 24; i++) {
+      users.push({
+        name: `${firstNames[i]} ${lastNames[i]}`,
+        email: `${firstNames[i].toLowerCase()}.${lastNames[i].toLowerCase()}@ibm.com`,
+        phone: `07700${String(900128 + i).padStart(6, '0')}`
+      });
+    }
+    
+    console.log('👥 Creating 30 users (first 5 match README test accounts)...');
     
     // Create user insert values
     const userValues = [];
     const userParams = [];
     let paramCounter = 1;
     
-    for (let i = 0; i < 29; i++) {
-      const firstName = firstNames[i];
-      const lastName = lastNames[i];
-      const email = `${firstName.toLowerCase()}.${lastName.toLowerCase()}@ibm.com`;
-      const phone = `07700${String(900000 + i).padStart(6, '0')}`;
-      
-      userValues.push(`($${paramCounter}, $${paramCounter + 1}, $${paramCounter + 2}, $${paramCounter + 3}, $${paramCounter + 4})`);
-      userParams.push(firstName + ' ' + lastName, email, userPassword, phone, 'user');
+    for (let i = 0; i < users.length; i++) {
+      userValues.push(`(${paramCounter}, ${paramCounter + 1}, ${paramCounter + 2}, ${paramCounter + 3}, ${paramCounter + 4})`);
+      userParams.push(users[i].name, users[i].email, userPassword, users[i].phone, 'user');
       paramCounter += 5;
     }
     
